@@ -14,6 +14,7 @@ namespace DeepakCars.Data
             : base(options)
         {
         }
+        public DbSet<ServiceType> ServiceTypes {get; set;}
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
