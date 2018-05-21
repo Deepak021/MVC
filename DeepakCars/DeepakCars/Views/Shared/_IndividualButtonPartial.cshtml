@@ -1,0 +1,10 @@
+﻿@model DeepakCars.Models.IndividualButtonPartial
+
+<a type="button" class="btn btn-sm btn @Model.ButtonType"
+   href="@Url.Action(Model.Action)@Model.ActionParameters">
+
+    <span class="glyphicon @Model.Glyph"></span>
+    
+    <span class="sr-only">@Model.Text</span>
+
+</a>
