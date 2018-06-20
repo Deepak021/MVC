@@ -13,6 +13,8 @@ using Microsoft.Extensions.Options;
 using DeepakCars.Models;
 using DeepakCars.Models.AccountViewModels;
 using DeepakCars.Services;
+using DeepakCars.Data;
+using DeepakCars.Utility;
 
 namespace DeepakCars.Controllers
 {
@@ -22,6 +24,8 @@ namespace DeepakCars.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ApplicationDbContext _db;
         private readonly IEmailSender _emailSender;
         private readonly ILogger _logger;
 
@@ -29,9 +33,13 @@ namespace DeepakCars.Controllers
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IEmailSender emailSender,
+            ApplicationDbContext db,
+            RoleManager<IdentityRole> roleManager,
             ILogger<AccountController> logger)
         {
             _userManager = userManager;
+            _db = db;
+            _roleManager = roleManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
             _logger = logger;
@@ -206,7 +214,7 @@ namespace DeepakCars.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult Register(string returnUrl = null)
+        public IActionResult Register(string returnUrl = null) 
         {
             ViewData["ReturnUrl"] = returnUrl;
             return View();
@@ -220,10 +228,37 @@ namespace DeepakCars.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser {
+                    UserName = model.Email,
+                    Email = model.Email,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    Address = model.Address,
+                    City = model.City,
+                    PostalCode= model.PostalCode,
+                    PhoneNumber = model.PhoneNumber
+                };
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
+                    if(!await _roleManager.RoleExistsAsync(SD.CustomerEndUser))
+                    {
+                        await _roleManager.CreateAsync(new IdentityRole(SD.CustomerEndUser));
+                    }
+                    if (!await _roleManager.RoleExistsAsync(SD.AdminEndUser))
+                    {
+                        await _roleManager.CreateAsync(new IdentityRole(SD.AdminEndUser));
+                    }
+
+                    if(model.isAdmin)
+                    {
+                        await _userManager.AddToRoleAsync(user, SD.AdminEndUser);
+                    }
+                    else
+                    {
+                        await _userManager.AddToRoleAsync(user, SD.CustomerEndUser);
+                    }
+                    
                     _logger.LogInformation("User created a new account with password.");
 
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
